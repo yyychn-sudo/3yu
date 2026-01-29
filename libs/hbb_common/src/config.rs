@@ -518,7 +518,6 @@ impl Config2 {
         lock.store();
         true
     }
-}
 
 pub fn load_path<T: serde::Serialize + serde::de::DeserializeOwned + Default + std::fmt::Debug>(
     file: PathBuf,
