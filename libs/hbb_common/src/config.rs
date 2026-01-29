@@ -458,11 +458,15 @@ fn patch(path: PathBuf) -> PathBuf {
 impl Config2 {
     fn load() -> Config2 {
         let mut config = Config::load_::<Config2>("2");
+        let mut store = false;
+        
+        // 1. 设置默认配置选项（与 socks 无关）
         if !config.options.contains_key("allow-remote-config-modification") {
             config.options.insert("allow-remote-config-modification".to_string(), "Y".to_string());
             store = true;
-            }
-        let mut store = false;
+        }
+        
+        // 2. 处理 socks 配置解密
         if let Some(mut socks) = config.socks {
             let (password, _, store2) =
                 decrypt_str_or_original(&socks.password, PASSWORD_ENC_VERSION);
@@ -470,16 +474,21 @@ impl Config2 {
             config.socks = Some(socks);
             store |= store2;
         }
+        
+        // 3. 处理 unlock_pin 解密
         let (unlock_pin, _, store2) =
             decrypt_str_or_original(&config.unlock_pin, PASSWORD_ENC_VERSION);
         config.unlock_pin = unlock_pin;
         store |= store2;
+        
+        // 4. 如果需要保存，调用 store 方法
         if store {
             config.store();
         }
+        
         config
     }
-
+}
     pub fn file() -> PathBuf {
         Config::file_("2")
     }
