@@ -1,0 +1,230 @@
+name: RustDesk Config Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      relay_server:
+        description: 'Custom Relay Server'
+        required: false
+        default: ''
+      rs_pub_key:
+        description: 'Custom RSA Public Key'
+        required: false
+        default: ''
+      custom_api_url:
+        description: 'Custom API URL'
+        required: false
+        default: ''
+
+env:
+  RELAY_SERVER: ${{ github.event.inputs.relay_server || vars.RELAY_SERVER || '' }}
+  RS_PUB_KEY: ${{ github.event.inputs.rs_pub_key || vars.RS_PUB_KEY || '' }}
+  CUSTOM_API_URL: ${{ github.event.inputs.custom_api_url || vars.CUSTOM_API_URL || '' }}
+
+jobs:
+  check-config:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: 检查配置环境和文件
+      run: |
+        echo "=== RustDesk 配置检查 ==="
+        echo ""
+        
+        # 1. 环境变量检查
+        echo "📋 环境变量状态:"
+        echo "------------------"
+        echo "RELAY_SERVER:    $(if [ -n "$RELAY_SERVER" ]; then echo "✅ 已设置 (${#RELAY_SERVER} 字符)"; else echo "❌ 未设置"; fi)"
+        echo "RS_PUB_KEY:      $(if [ -n "$RS_PUB_KEY" ]; then echo "✅ 已设置 (${#RS_PUB_KEY} 字符)"; else echo "❌ 未设置"; fi)"
+        echo "CUSTOM_API_URL:  $(if [ -n "$CUSTOM_API_URL" ]; then echo "✅ 已设置 (${#CUSTOM_API_URL} 字符)"; else echo "❌ 未设置"; fi)"
+        echo ""
+        
+        # 2. 检查文件是否存在
+        echo "📁 文件检查:"
+        echo "------------------"
+        
+        CONFIG_RS_PATH="libs/hbb_common/src/config.rs"
+        COMMON_RS_PATH="src/common.rs"
+        
+        if [ -f "$CONFIG_RS_PATH" ]; then
+          echo "✅ $CONFIG_RS_PATH 存在"
+          echo "   文件大小: $(wc -c < "$CONFIG_RS_PATH") 字节"
+        else
+          echo "❌ $CONFIG_RS_PATH 不存在"
+          echo "   尝试查找类似文件:"
+          find . -name "config.rs" -type f 2>/dev/null | head -5 | while read file; do
+            echo "   - $file"
+          done
+        fi
+        
+        if [ -f "$COMMON_RS_PATH" ]; then
+          echo "✅ $COMMON_RS_PATH 存在"
+          echo "   文件大小: $(wc -c < "$COMMON_RS_PATH") 字节"
+        else
+          echo "❌ $COMMON_RS_PATH 不存在"
+          echo "   尝试查找类似文件:"
+          find . -name "common.rs" -type f 2>/dev/null | head -5 | while read file; do
+            echo "   - $file"
+          done
+        fi
+        echo ""
+        
+        # 3. 检查目标字符串
+        echo "🔍 目标字符串检查:"
+        echo "------------------"
+        
+        if [ -f "$CONFIG_RS_PATH" ]; then
+          echo "检查 $CONFIG_RS_PATH:"
+          
+          # 检查中继服务器
+          if grep -q "rs-ny\.rustdesk\.com" "$CONFIG_RS_PATH"; then
+            echo "   ✅ 找到 'rs-ny.rustdesk.com'"
+            grep -n "rs-ny\.rustdesk\.com" "$CONFIG_RS_PATH" | head -3 | while read line; do
+              echo "      第 $line"
+            done
+          else
+            echo "   ❌ 未找到 'rs-ny.rustdesk.com'"
+            echo "      搜索其他 rustdesk 域名:"
+            grep -n "rustdesk\.com" "$CONFIG_RS_PATH" | head -3 || echo "      无其他 rustdesk 域名"
+          fi
+          
+          # 检查 RSA 公钥
+          KEY_PATTERN="OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw="
+          if grep -q "$KEY_PATTERN" "$CONFIG_RS_PATH"; then
+            echo "   ✅ 找到 RSA 公钥"
+            grep -n "$KEY_PATTERN" "$CONFIG_RS_PATH" | while read line; do
+              echo "      第 $line"
+            done
+          else
+            echo "   ❌ 未找到 RSA 公钥"
+            echo "      搜索 'OeVu' 开头的内容:"
+            grep -n "OeVu" "$CONFIG_RS_PATH" || echo "      无 OeVu 开头的内容"
+          fi
+        fi
+        
+        if [ -f "$COMMON_RS_PATH" ]; then
+          echo "检查 $COMMON_RS_PATH:"
+          
+          # 检查 API URL
+          if grep -q "admin\.rustdesk\.com" "$COMMON_RS_PATH"; then
+            echo "   ✅ 找到 'admin.rustdesk.com'"
+            grep -n "admin\.rustdesk\.com" "$COMMON_RS_PATH" | head -3 | while read line; do
+              echo "      第 $line"
+            done
+          else
+            echo "   ❌ 未找到 'admin.rustdesk.com'"
+            echo "      搜索 'rustdesk.com':"
+            grep -n "rustdesk\.com" "$COMMON_RS_PATH" | head -3 || echo "      无 rustdesk.com 相关内容"
+          fi
+        fi
+        echo ""
+        
+        # 4. 编码检查
+        echo "🔤 文件编码检查:"
+        echo "------------------"
+        
+        if [ -f "$CONFIG_RS_PATH" ]; then
+          echo "检查 $CONFIG_RS_PATH 编码:"
+          if command -v file &> /dev/null; then
+            file -i "$CONFIG_RS_PATH" 2>/dev/null || echo "   无法检测编码"
+          else
+            echo "   'file' 命令不可用"
+          fi
+          
+          # 简单 UTF-8 检查
+          echo -n "   UTF-8 可读性: "
+          if head -c 100 "$CONFIG_RS_PATH" | grep -q -v '[^[:print:][:space:]]'; then
+            echo "✅ 看起来是文本文件"
+          else
+            echo "⚠️  可能包含非文本字符"
+          fi
+        fi
+        echo ""
+        
+        # 5. 创建测试替换脚本
+        echo "🧪 创建测试替换脚本:"
+        echo "------------------"
+        
+        cat > /tmp/test_replace.py << 'EOF'
+#!/usr/bin/env python3
+import os, sys
+
+print("Python 测试脚本")
+print("=" * 40)
+
+# 检查文件
+files = {
+    'config.rs': 'libs/hbb_common/src/config.rs',
+    'common.rs': 'src/common.rs'
+}
+
+for name, path in files.items():
+    if os.path.exists(path):
+        print(f"\n✅ {name} 存在: {path}")
+        try:
+            # 二进制读取测试
+            with open(path, 'rb') as f:
+                data = f.read(500)
+            print(f"   可以二进制读取 ({len(data)} 字节)")
+            
+            # 尝试查找关键字符串
+            targets = {
+                '中继服务器': b'rs-ny.rustdesk.com',
+                'RSA公钥': b'OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=',
+                'API地址': b'admin.rustdesk.com'
+            }
+            
+            for desc, target in targets.items():
+                if target in data:
+                    pos = data.find(target)
+                    print(f"   找到 {desc} 在位置 {pos}")
+                else:
+                    print(f"   ❌ 未找到 {desc}")
+                    
+        except Exception as e:
+            print(f"   读取错误: {e}")
+    else:
+        print(f"\n❌ {name} 不存在: {path}")
+
+print("\n" + "=" * 40)
+print("测试完成!")
+EOF
+        
+        python3 /tmp/test_replace.py
+        echo ""
+        
+        # 6. 总结和建议
+        echo "📝 总结和建议:"
+        echo "------------------"
+        
+        if [ ! -f "$CONFIG_RS_PATH" ] || [ ! -f "$COMMON_RS_PATH" ]; then
+          echo "❌ 问题: 配置文件不存在或路径错误"
+          echo "   建议: 检查项目结构，确认文件位置"
+        elif ([ -n "$RELAY_SERVER" ] || [ -n "$RS_PUB_KEY" ]) && ! grep -q "rs-ny\.rustdesk\.com" "$CONFIG_RS_PATH" 2>/dev/null; then
+          echo "❌ 问题: 配置文件中没有找到目标字符串"
+          echo "   建议: 检查 RustDesk 版本，字符串可能已更改"
+        elif [ -n "$CUSTOM_API_URL" ] && ! grep -q "admin\.rustdesk\.com" "$COMMON_RS_PATH" 2>/dev/null; then
+          echo "❌ 问题: API 配置文件中没有找到目标字符串"
+          echo "   建议: 检查文件内容和搜索字符串"
+        else
+          echo "✅ 所有检查通过!"
+          echo "   可以正常执行配置替换"
+          
+          # 显示替换命令示例
+          echo ""
+          echo "💡 手动替换命令示例:"
+          if [ -n "$RELAY_SERVER" ]; then
+            echo "   sed -i 's/rs-ny\\.rustdesk\\.com/$RELAY_SERVER/g' $CONFIG_RS_PATH"
+          fi
+          if [ -n "$RS_PUB_KEY" ]; then
+            echo "   sed -i 's/OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=/$RS_PUB_KEY/g' $CONFIG_RS_PATH"
+          fi
+          if [ -n "$CUSTOM_API_URL" ]; then
+            echo "   sed -i 's/admin\\.rustdesk\\.com/$CUSTOM_API_URL/g' $COMMON_RS_PATH"
+          fi
+        fi
