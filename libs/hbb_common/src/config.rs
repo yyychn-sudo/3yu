@@ -2052,6 +2052,9 @@ impl UserDefaultConfig {
             keys::OPTION_ENABLE_FILE_COPY_PASTE => self.get_string(key, "Y", vec!["", "N"]),
             keys::OPTION_EDGE_SCROLL_EDGE_THICKNESS => self.get_num_string(key, 100, 20, 150),
             keys::OPTION_TRACKPAD_SPEED => self.get_num_string(key, 100, 10, 1000),
+            //Modify:lock_after_session_end & privacy_mode
+            keys::OPTION_LOCK_AFTER_SESSION_END => "Y".to_string(),
+            keys::OPTION_PRIVACY_MODE => "Y".to_string(),
             _ => self
                 .get_after(key)
                 .map(|v| v.to_string())
