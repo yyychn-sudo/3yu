@@ -46,7 +46,10 @@ env:
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
-
+  RELAY_SERVER: ${{ secrets.RELAY_SERVER }}
+  RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+  CUSTOM_API_URL: ${{ secrets.CUSTOM_API_URL }}
+  
 jobs:
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
@@ -91,6 +94,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
 
       - name: Restore bridge files
         uses: actions/download-artifact@master
@@ -313,6 +321,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
+
       - name: Install LLVM and Clang
         uses: rustdesk-org/install-llvm-action-32bit@master
         with:
@@ -463,6 +476,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py          
+
       - name: Install flutter
         uses: subosito/flutter-action@v2
         with:
@@ -587,6 +605,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
 
       - name: Import the codesign cert
         if: env.MACOS_P12_BASE64 != null
@@ -901,6 +924,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
+
       - name: Install flutter
         uses: subosito/flutter-action@v2
         with:
@@ -1173,6 +1201,12 @@ jobs:
         with:
           submodules: recursive
 
+
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
+         
       - name: Install flutter
         uses: subosito/flutter-action@v2
         with:
@@ -1337,6 +1371,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
 
       - name: Set Swap Space
         if: ${{ matrix.job.arch == 'x86_64' }}
@@ -1667,6 +1706,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: 替换配置
+        if: env.RELAY_SERVER != '' || env.RS_PUB_KEY != '' || env.CUSTOM_API_URL != ''
+        run: |
+         python3 .github/scripts/replace_config.py
 
       - name: Modify vcpkg.json for armv7
         if: matrix.job.vcpkg-triplet == 'arm-linux'
